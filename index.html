@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tgproxy Hub | VPN & MTProto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- ПРЕМИУМ ПАЛИТРА --- */
+            --bg-color: #030604; 
+            --texture-color: rgba(0, 255, 136, 0.03); 
+            --primary-green: #00e676; 
+            --accent-green: #00ff88; 
+            --text-main: #ffffff; 
+            --text-dim: #9aa0a6; 
+            --card-bg: #090c0a; 
+            --neon-glow: 0 0 12px rgba(0, 255, 136, 0.3);
+            --neon-glow-intense: 0 0 20px rgba(0, 255, 136, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.2);
+            border-radius: 10px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            line-height: 1.5;
+            position: relative;
+            padding: 4vh 15px;
+        }
+
+        /* --- ФОН --- */
+        .bg-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2;
+            background: radial-gradient(circle at top center, #0a1f14 0%, var(--bg-color) 80%);
+        }
+
+        .bg-texture {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(var(--texture-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center;
+            z-index: -1;
+            opacity: 0.9; 
+        }
+
+        .bg-glow {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            filter: blur(90px);
+            opacity: 0.4; 
+            pointer-events: none;
+        }
+
+        .bg-glow::before {
+            content: ''; position: absolute;
+            width: 45vw; height: 45vw; 
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.12) 0%, transparent 70%);
+            top: -10vh; right: -10vw;
+            animation: hover_glow 15s infinite alternate ease-in-out;
+        }
+
+        .bg-glow::after {
+            content: ''; position: absolute;
+            width: 55vw; height: 55vw; 
+            background: radial-gradient(circle, rgba(0, 230, 118, 0.1) 0%, transparent 70%);
+            bottom: -15vh; left: -15vw;
+            animation: hover_glow 20s infinite alternate-reverse ease-in-out;
+        }
+
+        @keyframes hover_glow {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(6vw, 3vh) scale(1.1); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 460px; /* Сделал компактнее */
+            text-align: center;
+            animation: fadeIn 1s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 10;
+        }
+
+        header { margin-bottom: 25px; }
+
+        h1 {
+            font-size: 2.5rem; /* Уменьшен размер */
+            font-weight: 800;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #a7ffeb 0%, #00ff88 25%, #a7ffeb 50%, #00ff88 75%, #a7ffeb 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1.5px;
+            text-shadow: var(--neon-glow);
+            animation: dotPulseTitle 3s infinite, shine 5s linear infinite;
+        }
+
+        @keyframes shine { to { background-position: 200% center; } }
+        @keyframes dotPulseTitle {
+            0% { text-shadow: var(--neon-glow); }
+            50% { text-shadow: var(--neon-glow-intense); }
+            100% { text-shadow: var(--neon-glow); }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(0, 230, 118, 0.1); 
+            padding: 5px 12px;
+            border-radius: 100px;
+            color: var(--accent-green);
+            font-size: 0.75rem; /* Уменьшен шрифт */
+            font-weight: 600;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .dot {
+            width: 6px; height: 6px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            margin-right: 6px;
+            box-shadow: var(--neon-glow-intense);
+            animation: dotPulse 2s infinite; 
+        }
+
+        /* --- ВКЛАДКИ (TABS) --- */
+        .tabs-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            padding: 5px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            backdrop-filter: blur(15px);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 4px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 0.8rem; /* Уменьшен шрифт */
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-green);
+            color: #000;
+            box-shadow: var(--neon-glow);
+        }
+
+        .tab-content {
+            display: none;
+            animation: slideFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-content.active { display: block; }
+
+        @keyframes slideFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .description {
+            color: var(--text-dim);
+            max-width: 420px;
+            margin: 0 auto 15px auto;
+            font-size: 0.85rem; /* Компактнее */
+            font-weight: 500;
+        }
+
+        /* --- КАРТОЧКИ --- */
+        .apps-grid { display: grid; gap: 12px; }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(0, 255, 136, 0.08); 
+            border-radius: 16px; /* Чуть острее углы */
+            padding: 18px; /* Меньше отступы */
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 255, 136, 0.05) 0%, transparent 80%);
+            opacity: 0; transition: opacity 0.3s ease; z-index: -1;
+        }
+
+        .card:hover {
+            border-color: rgba(0, 255, 136, 0.4); 
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 136, 0.1);
+        }
+        .card:hover::before { opacity: 1; }
+
+        .card h2 { 
+            color: #fff; 
+            font-size: 1.15rem; /* Уменьшено */
+            margin-bottom: 4px; 
+            transition: color 0.3s ease, text-shadow 0.3s ease; 
+        }
+        
+        .card-header-compact {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 12px;
+        }
+        
+        .card-header-compact h2 { margin-bottom: 0; }
+
+        .card:hover h2 { color: var(--accent-green); text-shadow: var(--neon-glow); }
+
+        .card p { 
+            color: var(--text-dim); 
+            font-size: 0.8rem; /* Уменьшено */
+            margin-bottom: 12px; 
+            text-align: left; 
+        }
+
+        .proxy-meta {
+            display: inline-block; background: rgba(255, 255, 255, 0.04);
+            padding: 3px 8px; border-radius: 6px; color: var(--text-dim);
+            font-family: monospace; font-size: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* --- СЧЕТЧИКИ КЛИКОВ --- */
+        .counter-box {
+            font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); 
+            text-align: left; margin-bottom: 12px; display: flex; align-items: center; gap: 5px; font-weight: 500;
+        }
+        .counter-num {
+            color: var(--accent-green); font-weight: 800; font-size: 0.9rem; 
+            display: inline-block; text-shadow: var(--neon-glow); 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* --- КНОПКИ --- */
+        .btn {
+            background-color: var(--primary-green); color: #000;
+            padding: 10px 16px; border: none; border-radius: 10px; /* Уменьшены */
+            font-weight: 700; width: 100%; cursor: pointer;
+            transition: all 0.3s ease; font-size: 0.85rem; position: relative;
+            box-shadow: var(--neon-glow); 
+        }
+        .btn:not(.outline) { animation: btnPulseIntense 2.5s infinite; }
+        .card:hover .btn:not(.outline) {
+            background-color: var(--accent-green); transform: scale(1.02); 
+            animation: none; box-shadow: var(--neon-glow-intense); 
+        }
+        .btn.outline {
+            background-color: rgba(255, 255, 255, 0.03); color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: none;
+        }
+        .card:hover .btn.outline {
+            background-color: rgba(0, 255, 136, 0.08); border-color: rgba(0, 255, 136, 0.3);
+            color: var(--accent-green); box-shadow: var(--neon-glow);
+        }
+
+        /* --- КОМПАКТНЫЕ КАРТОЧКИ (Для Авто-Списка) --- */
+        .list-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.7rem; color: var(--text-dim); font-weight: 700;
+            letter-spacing: 0.5px; margin-bottom: 10px; padding: 0 8px;
+        }
+        .auto-list-grid { display: flex; flex-direction: column; gap: 8px; }
+
+        .list-card {
+            background: var(--card-bg); border: 1px solid rgba(0, 255, 136, 0.06);
+            border-radius: 14px; padding: 10px 14px; display: flex; align-items: center;
+            text-decoration: none; color: #fff; transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        .list-card:hover {
+            border-color: rgba(0, 255, 136, 0.3); transform: scale(1.01) translateX(4px);
+            background: rgba(0, 255, 136, 0.04); box-shadow: var(--neon-glow);
+        }
+        
+        .list-num {
+            background: rgba(255,255,255,0.04); color: var(--text-dim);
+            width: 28px; height: 28px; border-radius: 6px; display: flex;
+            align-items: center; justify-content: center; font-size: 0.75rem;
+            font-weight: 800; margin-right: 12px; flex-shrink: 0;
+        }
+        .list-info { flex-grow: 1; text-align: left; overflow: hidden; }
+        .list-host { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .list-badges { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 0.7rem; }
+        .badge-new { background: var(--accent-green); color: #000; padding: 2px 5px; border-radius: 4px; font-weight: 800; font-size: 0.6rem; box-shadow: 0 0 6px var(--accent-green); }
+        .badge-ghost { opacity: 0.6; }
+        
+        .list-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .list-ping { font-size: 0.75rem; color: var(--text-dim); font-weight: 600; }
+        .list-geo { background: rgba(255,255,255,0.06); padding: 3px 6px; border-radius: 5px; font-size: 0.7rem; font-weight: 800; color: #ccc; }
+        .list-arrow { color: var(--accent-green); font-size: 1rem; margin-left: 4px; transition: transform 0.3s; }
+        .list-card:hover .list-arrow { transform: translateX(4px); }
+
+        footer { margin-top: 30px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+        .tg-link { color: #00ff88; text-decoration: none; font-weight: 700; transition: all 0.3s ease; }
+        .tg-link:hover { color: #fff; text-shadow: var(--neon-glow); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes dotPulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.5); } 70% { box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        @keyframes btnPulseIntense { 0% { box-shadow: 0 0 4px 0px rgba(0, 255, 136, 0.3); } 70% { box-shadow: 0 0 12px 8px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 4px 0px rgba(0, 255, 136, 0.3); } }
+    </style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-texture"></div>
+<div class="bg-glow"></div>
+
+<div class="container">
+    <header>
+        <h1>Tgproxy</h1>
+        <div class="status-badge">
+            <span class="dot"></span>
+            <span class="text">Сборщик онлайн</span>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('vpn')">VPN Конфиги</button>
+        <button class="tab-btn" onclick="switchTab('proxy-white')">Белые Прокси</button>
+        <button class="tab-btn" onclick="switchTab('proxy-auto')">Авто-Прокси</button>
+    </div>
+
+    <div id="tab-vpn" class="tab-content active">
+        <p class="description">Бесплатный, безотказный VPN, который работает в любых условиях. Собрали лучшие vless-конфиги в умные сервера.</p>
+        <main class="apps-grid">
+            <a href="https://r.stun.su/?to=happ://add/https://raw.githubusercontent.com/yoiambugger/auto-vless-config/refs/heads/main/custom_sub.json%23TgproxyVPN" class="card" id="card-happ">
+                <h2>Happ</h2>
+                <p>Идеально для iPhone и Android. Нажми, чтобы автоматически импортировать все сервера.</p>
+                <div class="counter-box">Подписку подключили: <span id="count-happ" class="counter-num">0</span></div>
+                <button class="btn">Добавить в Happ</button>
+            </a>
+            <a href="v2raytun://import/https://raw.githubusercontent.com/yoiambugger/auto-vless-config/refs/heads/main/custom_sub.json%23TgproxyVPN" class="card" id="card-v2raytun">
+                <h2>v2raytun</h2>
+                <p>Мощный клиент с детальной настройкой. Добавление подписки в один клик.</p>
+                <div class="counter-box">Подписку подключили: <span id="count-v2raytun" class="counter-num">0</span></div>
+                <button class="btn">Импортировать в v2raytun</button>
+            </a>
+            <a href="https://raw.githubusercontent.com/yoiambugger/auto-vless-config/refs/heads/main/custom_sub.json" class="card" target="_blank" id="card-json">
+                <h2>Прямая ссылка</h2>
+                <p>Для v2rayNG, NekoBox и других приложений. Скопируй адрес и вставь в настройки.</p>
+                <div class="counter-box">Скопировали ссылку: <span id="count-json" class="counter-num">0</span></div>
+                <button class="btn outline">Открыть JSON</button>
+            </a>
+        </main>
+    </div>
+
+    <div id="tab-proxy-white" class="tab-content">
+        <p class="description">Прямые, приватные MTProto прокси. Работают автономно, без VPN. Отлично подходят для звонков и медиа.</p>
+        <main class="apps-grid">
+            <a href="tg://proxy?server=84.201.186.219&port=443&secret=eef2865e3acbb95b7aac8c09512325b07f6f7a6f6e2e7275" class="card">
+                <div class="card-header-compact">
+                    <h2>Сервер #1</h2>
+                    <span class="proxy-meta">84.201.186.219:443</span>
+                </div>
+                <button class="btn outline">Подключить в Telegram</button>
+            </a>
+            <a href="tg://proxy?server=158.160.44.226&port=8081&secret=ee04370edfb79e9bd8def2d2e88c1b87c86d61782e7275" class="card">
+                <div class="card-header-compact">
+                    <h2>Сервер #2</h2>
+                    <span class="proxy-meta">158.160.44.226:8081</span>
+                </div>
+                <button class="btn outline">Подключить в Telegram</button>
+            </a>
+            <a href="tg://proxy?server=158.160.253.241&port=8443&secret=734ee77915c1d90f976a82d000052ad5" class="card">
+                <div class="card-header-compact">
+                    <h2>Сервер #3</h2>
+                    <span class="proxy-meta">158.160.253.241:8443</span>
+                </div>
+                <button class="btn outline">Подключить в Telegram</button>
+            </a>
+            <a href="tg://proxy?server=84.201.135.111&port=8443&secret=eea1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6676f6f676c652e636f6d" class="card">
+                <div class="card-header-compact">
+                    <h2>Сервер #4</h2>
+                    <span class="proxy-meta">84.201.135.111:8443</span>
+                </div>
+                <button class="btn outline">Подключить в Telegram</button>
+            </a>
+        </main>
+    </div>
+
+    <div id="tab-proxy-auto" class="tab-content">
+        <p class="description">Ежечасно обновляемый список рабочих прокси. Нажми на любую строку для мгновенного подключения.</p>
+        
+        <div class="list-header">
+            <span>СПИСОК УЗЛОВ</span>
+            <span style="color: var(--accent-green);"><span id="online-count">...</span> ОНЛАЙН</span>
+        </div>
+        
+        <div class="auto-list-grid" id="auto-list-container">
+            </div>
+    </div>
+
+    <footer>
+        <p>© 2026 Tgproxy.</p>
+        <p>Следите за обновлениями в <a href="https://t.me/telegaproxys" class="tg-link">@telegaproxys</a></p>
+    </footer>
+</div>
+
+<script>
+    // 1. ЛОГИКА ВКЛАДОК
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    // 2. ЛОГИКА СЧЕТЧИКОВ (Только для VPN)
+    document.addEventListener('DOMContentLoaded', () => {
+        const itemIds = ['happ', 'v2raytun', 'json'];
+        itemIds.forEach(id => {
+            const card = document.getElementById(`card-${id}`);
+            const countSpan = document.getElementById(`count-${id}`);
+            if(!card || !countSpan) return;
+
+            const hasClicked = localStorage.getItem(`clicked_tgproxy_${id}`);
+            let currentCount = 0; 
+            if (hasClicked) currentCount++;
+            countSpan.innerText = currentCount;
+
+            card.addEventListener('click', () => {
+                if (!localStorage.getItem(`clicked_tgproxy_${id}`)) {
+                    localStorage.setItem(`clicked_tgproxy_${id}`, 'true');
+                    currentCount++;
+                    countSpan.innerText = currentCount;
+                    
+                    countSpan.style.transform = 'scale(1.5)';
+                    countSpan.style.color = '#fff';
+                    countSpan.style.textShadow = '0 0 20px rgba(0,255,136,1)';
+                    
+                    setTimeout(() => {
+                        countSpan.style.transform = 'scale(1)';
+                        countSpan.style.color = 'var(--accent-green)';
+                        countSpan.style.textShadow = '0 0 15px rgba(0, 255, 136, 0.5)';
+                    }, 400);
+                }
+            });
+        });
+    });
+
+    // 3. ЛОГИКА АВТО-ПРОКСИ ИЗ JSON
+    const JSON_URL = 'https://raw.githubusercontent.com/yoiambugger/MTProtolist/main/data.json';
+    
+    function shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    async function loadDynamicProxies() {
+        try {
+            const res = await fetch(JSON_URL + '?t=' + Date.now());
+            const rawData = await res.json();
+            const shuffledData = shuffle([...rawData]);
+            
+            const lastHosts = JSON.parse(localStorage.getItem('prev_proxy_hosts') || '[]');
+            const currentHosts = shuffledData.map(p => p.host);
+            
+            const listCont = document.getElementById('auto-list-container');
+            document.getElementById('online-count').innerText = shuffledData.length;
+            listCont.innerHTML = '';
+            
+            shuffledData.forEach((p, i) => {
+                const isNew = !lastHosts.includes(p.host);
+                const ping = p.ping ? `${p.ping} ms` : 'Wait..';
+                
+                const item = document.createElement('a');
+                item.href = p.link;
+                item.className = 'list-card';
+                item.style.animation = `slideFadeIn 0.4s ease forwards ${(i * 0.04)}s`;
+                item.style.opacity = '0'; 
+                
+                item.innerHTML = `
+                    <div class="list-num">${String(i + 1).padStart(2, '0')}</div>
+                    <div class="list-info">
+                        <div class="list-host">${p.host}</div>
+                        <div class="list-badges">
+                            ${p.country === 'RU' ? '<span>🇷🇺</span>' : ''}
+                            ${p.secret?.startsWith('ee') ? '<span class="badge-ghost">👻 FakeTLS</span>' : ''}
+                            ${isNew ? '<span class="badge-new">NEW</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="list-meta">
+                        <div class="list-ping">${ping}</div>
+                        <div class="list-geo">${p.country || 'UN'}</div>
+                        <div class="list-arrow">→</div>
+                    </div>
+                `;
+                listCont.appendChild(item);
+            });
+            
+            localStorage.setItem('prev_proxy_hosts', JSON.stringify(currentHosts));
+        } catch (e) {
+            console.error('Ошибка загрузки авто-прокси:', e);
+            document.getElementById('auto-list-container').innerHTML = '<p style="color:var(--text-dim);font-size:0.8rem;">Ошибка загрузки списка. Попробуйте позже.</p>';
+        }
+    }
+    
+    loadDynamicProxies();
+    setInterval(loadDynamicProxies, 300000);
+</script>
+
+</body>
+</html>
