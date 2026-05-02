@@ -387,35 +387,8 @@
 
     <div id="tab-proxy-white" class="tab-content">
         <p class="description">Прямые, приватные MTProto прокси. Работают автономно, без VPN. Отлично подходят для звонков и медиа.</p>
-        <main class="apps-grid">
-            <a href="tg://proxy?server=84.201.186.219&port=443&secret=eef2865e3acbb95b7aac8c09512325b07f6f7a6f6e2e7275" class="card">
-                <div class="card-header-compact">
-                    <h2>Сервер #1</h2>
-                    <span class="proxy-meta">84.201.186.219:443</span>
-                </div>
-                <button class="btn outline">Подключить в Telegram</button>
-            </a>
-            <a href="tg://proxy?server=158.160.44.226&port=8081&secret=ee04370edfb79e9bd8def2d2e88c1b87c86d61782e7275" class="card">
-                <div class="card-header-compact">
-                    <h2>Сервер #2</h2>
-                    <span class="proxy-meta">158.160.44.226:8081</span>
-                </div>
-                <button class="btn outline">Подключить в Telegram</button>
-            </a>
-            <a href="tg://proxy?server=158.160.253.241&port=8443&secret=734ee77915c1d90f976a82d000052ad5" class="card">
-                <div class="card-header-compact">
-                    <h2>Сервер #3</h2>
-                    <span class="proxy-meta">158.160.253.241:8443</span>
-                </div>
-                <button class="btn outline">Подключить в Telegram</button>
-            </a>
-            <a href="tg://proxy?server=84.201.135.111&port=8443&secret=eea1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6676f6f676c652e636f6d" class="card">
-                <div class="card-header-compact">
-                    <h2>Сервер #4</h2>
-                    <span class="proxy-meta">84.201.135.111:8443</span>
-                </div>
-                <button class="btn outline">Подключить в Telegram</button>
-            </a>
+        <main class="apps-grid" id="white-list-container">
+            <p style="color:var(--text-dim);font-size:0.8rem;">Загрузка серверов...</p>
         </main>
     </div>
 
@@ -479,7 +452,51 @@
         });
     });
 
-    // 3. ЛОГИКА АВТО-ПРОКСИ ИЗ JSON
+    // 3. ЗАГРУЗКА БЕЛЫХ ПРОКСИ ИЗ WHITE.TXT
+    async function loadWhiteProxies() {
+        try {
+            const res = await fetch('white.txt?t=' + Date.now());
+            const text = await res.text();
+            const container = document.getElementById('white-list-container');
+            container.innerHTML = '';
+            
+            const links = text.split('\n').map(line => line.trim()).filter(line => line.includes('server='));
+            
+            links.forEach((link, i) => {
+                const parseUrl = new URL(link.replace('tg://', 'http://').replace('https://t.me/', 'http://t.me/'));
+                const server = parseUrl.searchParams.get('server');
+                const port = parseUrl.searchParams.get('port');
+                const secret = parseUrl.searchParams.get('secret');
+                
+                if(!server) return; 
+
+                const item = document.createElement('a');
+                item.href = `tg://proxy?server=${server}&port=${port}&secret=${secret}`;
+                item.className = 'card';
+                item.style.animation = `slideFadeIn 0.4s ease forwards ${(i * 0.05)}s`;
+                item.style.opacity = '0';
+                
+                item.innerHTML = `
+                    <div class="card-header-compact">
+                        <h2>Сервер #${i + 1}</h2>
+                        <span class="proxy-meta">${server}:${port}</span>
+                    </div>
+                    <button class="btn outline">Подключить в Telegram</button>
+                `;
+                container.appendChild(item);
+            });
+            
+            if(links.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-dim);font-size:0.8rem;">Нет доступных серверов.</p>';
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки белых прокси:', e);
+            document.getElementById('white-list-container').innerHTML = '<p style="color:var(--text-dim);font-size:0.8rem;">Не удалось загрузить серверы. Проверьте файл white.txt</p>';
+        }
+    }
+    loadWhiteProxies();
+
+    // 4. ЛОГИКА АВТО-ПРОКСИ ИЗ JSON
     const JSON_URL = 'https://raw.githubusercontent.com/yoiambugger/MTProtolist/main/data.json';
     
     function shuffle(a) {
