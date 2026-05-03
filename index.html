@@ -331,7 +331,17 @@
         .list-arrow { color: var(--accent-green); font-size: 1rem; margin-left: 4px; transition: transform 0.3s; }
         .list-card:hover .list-arrow { transform: translateX(4px); }
 
-        footer { margin-top: 30px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+        /* --- ФУТЕР И ДИСКЛЕЙМЕР --- */
+        footer { margin-top: 40px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+        
+        .disclaimer {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.2); /* Очень приглушенный цвет */
+            max-width: 420px;
+            margin: 0 auto 15px auto;
+            line-height: 1.4;
+        }
+
         .tg-link { color: #00ff88; text-decoration: none; font-weight: 700; transition: all 0.3s ease; }
         .tg-link:hover { color: #fff; text-shadow: var(--neon-glow); }
 
@@ -405,6 +415,9 @@
     </div>
 
     <footer>
+        <div class="disclaimer">
+            Внимание: Данный проект создан исключительно в ознакомительных и образовательных целях. Автор не несет ответственности за возможные последствия использования предоставленной информации.
+        </div>
         <p>© 2026 Tgproxy.</p>
         <p>Следите за обновлениями в <a href="https://t.me/telegaproxys" class="tg-link">@telegaproxys</a></p>
     </footer>
