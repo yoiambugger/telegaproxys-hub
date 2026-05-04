@@ -504,7 +504,7 @@
             }
         } catch (e) {
             console.error('Ошибка загрузки белых прокси:', e);
-            document.getElementById('white-list-container').innerHTML = '<p style="color:var(--text-dim);font-size:0.8rem;">Не удалось загрузить серверы. Проверьте файл white.txt</p>';
+            document.getElementById('white-list-container').innerHTML = '<p style="color:var(--text-dim);font-size:0.8rem;">Не удалось загрузить серверы. Проверьте интернет-соединение.</p>';
         }
     }
     loadWhiteProxies();
